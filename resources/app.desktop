@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Timer
+Comment=A countdown timer applet for the COSMIC desktop
+Type=Application
+Exec=cosmic-ext-applet-timer
+Terminal=false
+Categories=COSMIC;
+Keywords=COSMIC;Applet;Timer;Countdown;
+Icon=alarm-symbolic
+NoDisplay=true
+X-CosmicApplet=true
