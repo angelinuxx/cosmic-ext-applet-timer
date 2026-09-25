@@ -10,6 +10,10 @@ Design, risks and milestones live in `PLANNING.md`; read it first.
   write and where, explains each new construct when it appears, reviews, and
   unblocks. Do not write the implementation yourself unless the user
   explicitly asks for a specific snippet.
+- **Explain before code, then code in pieces.** For every step: first say
+  what we are about to build and why, then walk through the code a few
+  lines at a time, explaining each piece before showing it. Never dump a
+  whole file and explain it afterwards.
 - Propose before doing: present the plan for a step, wait for the OK.
 - Never commit without asking. Conventional Commits (`feat:`, `fix:`, `docs:`,
   `chore:`, `refactor:`, `test:`), minimal: a single subject line unless the
