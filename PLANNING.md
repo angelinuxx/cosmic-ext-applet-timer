@@ -103,21 +103,25 @@ pub struct Timer {
 ```
 
 Methods: `start(now)`, `pause(now)`, `resume(now)`, `reset()`,
-`acknowledge()`, `remaining(now) -> Duration`, `progress(now) -> f32`,
+`remaining(now) -> Duration`, `progress(now) -> f32`,
 `tick(now) -> Option<Event>` (moves Running -> Expired when `now >= ends_at`
 and returns `Some(Event::Expired)` so `update` knows when to notify).
 
 Every method takes `now` as a parameter instead of reading the clock, so the
 module is unit-testable without waiting.
 
-`AppModel` holds `timers: Vec<Timer>` from M1 even though the MVP creates a
-single timer; the multi-timer milestone then touches only the UI.
+`AppModel` holds a single `timer: Timer` until M3. Moving to `Vec<Timer>` is
+the subject of M4 (decided 2026-09-25: carrying a one-element list through
+three milestones adds noise without teaching anything).
+
+`acknowledge()` is not a separate method: confirming an expired timer is a
+`reset()` from the UI's point of view.
 
 ### Tick subscription
 
-Present only while at least one timer is `Running`. Sends `Message::Tick` once
-per second (`tokio::time::interval`, `MissedTickBehavior::Skip`). `update`
-calls `tick(now)` on every timer and collects events.
+Present only while the timer is `Running`. `iced::time::every(1s)` mapped to
+`Message::Tick` (simpler than a hand-written stream; revisit only if drift
+becomes visible). `update` calls `tick(now)` and acts on the returned event.
 
 ### Panel (`view`)
 
