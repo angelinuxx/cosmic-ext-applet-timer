@@ -71,6 +71,19 @@ impl Timer {
     }
 }
 
+pub fn format_remaining(remaining: Duration) -> String {
+    let total = remaining.as_secs();
+    let hours = total / 3600;
+    let minutes = (total % 3600) / 60;
+    let seconds = total % 60;
+
+    if hours > 0 {
+        format!("{hours}:{minutes:02}:{seconds:02}")
+    } else {
+        format!("{minutes:02}:{seconds:02}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,5 +165,20 @@ mod tests {
         timer.reset();
 
         assert!(matches!(timer.state, TimerState::Idle));
+    }
+
+    #[test]
+    fn formats_minutes_and_seconds_with_leading_zeros() {
+        assert_eq!(format_remaining(Duration::from_secs(290)), "04:50");
+    }
+
+    #[test]
+    fn formats_zero() {
+        assert_eq!(format_remaining(Duration::ZERO), "00:00");
+    }
+
+    #[test]
+    fn formats_hours_when_over_sixty_minutes() {
+        assert_eq!(format_remaining(Duration::from_secs(3_725)), "1:02:05");
     }
 }
