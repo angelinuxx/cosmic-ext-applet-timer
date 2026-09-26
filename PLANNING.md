@@ -11,7 +11,7 @@ holds the project conventions and commands.
 
 Must have (MVP = M0..M2):
 
-- Set a duration: quick presets (5 / 10 / 25 min) plus manual minutes/seconds.
+- Set a duration: quick presets (5 / 10 / 15 min) plus manual minutes/seconds.
 - Start, pause, resume, reset from the applet popup.
 - Remaining time visible in the panel while running.
 - System notification on expiry.
@@ -139,7 +139,7 @@ becomes visible). `update` calls `tick(now)` and acts on the returned event.
 
 Top to bottom: big remaining time (`title1`), progress bar, control row
 (Start / Pause / Resume / Reset depending on state), divider, preset row
-(5 / 10 / 25 as pill buttons), manual entry with two spin buttons (minutes,
+(5 / 10 / 15 as pill buttons), manual entry with two spin buttons (minutes,
 seconds). In M4 each timer becomes a card with a label field, plus an
 "Add timer" button.
 
@@ -252,7 +252,7 @@ tests, subscriptions, `&` / `&mut` in practice.
 
 ### M2: chosen duration, expiry, notification (end of MVP)
 
-- Presets 5 / 10 / 25 and minutes/seconds spin buttons.
+- Presets 5 / 10 / 15 and minutes/seconds spin buttons.
 - `Expired` state: `00:00` on accent background in the panel, click to
   acknowledge.
 - Desktop notification via `notify-rust`. Progress bar.

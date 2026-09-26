@@ -29,6 +29,7 @@ pub enum Message {
     Resume,
     Reset,
     Tick,
+    SetDuration(Duration),
 }
 
 impl AppModel {
@@ -69,6 +70,26 @@ impl AppModel {
                 .push(widget::button::suggested(fl!("done")).on_press(Message::Reset)),
         };
         row.spacing(8).into()
+    }
+
+    /// One preset button, e.g. "5 min", that sets the duration when pressed, enabled only while idle.
+    fn preset_button(&self, minutes: u64) -> Element<'_, Message> {
+        let idle = matches!(self.timer.state, TimerState::Idle);
+        let message = idle.then(|| Message::SetDuration(Duration::from_mins(minutes)));
+
+        widget::button::standard(fl!("preset-minutes", minutes = minutes))
+            .on_press_maybe(message)
+            .into()
+    }
+
+    /// The preset row: quick durations, enabled only while idle.
+    fn presets(&self) -> Element<'_, Message> {
+        widget::Row::new()
+            .push(self.preset_button(5))
+            .push(self.preset_button(10))
+            .push(self.preset_button(15))
+            .spacing(8)
+            .into()
     }
 }
 
@@ -152,6 +173,8 @@ impl cosmic::Application for AppModel {
             .push(widget::text::title1(remaining))
             .push(widget::progress_bar::determinate_linear(progress))
             .push(self.controls())
+            .push(widget::divider::horizontal::default())
+            .push(self.presets())
             .align_x(Alignment::Center)
             .spacing(12)
             .padding(12);
@@ -175,6 +198,7 @@ impl cosmic::Application for AppModel {
                 // Expiry events will drive the notification in M2.
                 self.timer.tick(SystemTime::now());
             }
+            Message::SetDuration(duration) => self.timer.set_duration(duration),
         }
         Task::none()
     }

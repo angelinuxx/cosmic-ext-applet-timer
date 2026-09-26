@@ -78,6 +78,12 @@ impl Timer {
         }
         elapsed.as_secs_f32() / duration
     }
+
+    pub fn set_duration(&mut self, duration: Duration) {
+        if matches!(self.state, TimerState::Idle) {
+            self.duration = duration;
+        }
+    }
 }
 
 pub fn format_remaining(remaining: Duration) -> String {
@@ -202,6 +208,21 @@ mod tests {
         timer.start(at(100));
         timer.tick(at(400));
         assert_close(timer.progress(at(400)), 1.0);
+    }
+
+    #[test]
+    fn set_duration_changes_an_idle_timer() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.set_duration(Duration::from_secs(600));
+        assert_eq!(timer.remaining(at(0)), Duration::from_secs(600));
+    }
+
+    #[test]
+    fn set_duration_is_ignored_while_running() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.start(at(100));
+        timer.set_duration(Duration::from_secs(600));
+        assert_eq!(timer.remaining(at(110)), Duration::from_secs(290));
     }
 
     #[test]
