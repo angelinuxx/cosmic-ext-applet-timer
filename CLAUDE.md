@@ -92,3 +92,20 @@ resources/       app.desktop, app.metainfo.xml, icon.svg
 - Reference implementations (read-only, clone into the scratchpad when
   needed): `cosmic-utils/cosmic-ext-applet-pomodoro`,
   `pop-os/cosmic-applets` (`cosmic-applet-time`).
+
+## libcosmic gotchas at the pinned rev (03c8f93b)
+
+- Popup commands live at
+  `cosmic::iced::platform_specific::shell::wayland::commands::popup`
+  (`cosmic::iced_winit` is not re-exported).
+- `widget::row()` / `widget::column()` take a children argument; use
+  `widget::Row::new()` / `widget::Column::new()` for the builder style.
+- `core.applet.button_from_element` fixes the button width to the icon size
+  and clips any text; the panel button with text is built by hand in
+  `app.rs::view` (see comment there).
+- `cosmic::iced::time::every(Duration)` is available (tokio feature) and is
+  what the tick subscription uses.
+- Verify an API before proposing it: the checkout is under
+  `~/.cargo/git/checkouts/libcosmic-*/03c8f93/`. A throwaway crate in the
+  scratchpad with `CARGO_TARGET_DIR` pointed at this project's `target/`
+  compiles in seconds.
