@@ -30,6 +30,8 @@ pub enum Message {
     Reset,
     Tick,
     SetDuration(Duration),
+    SetMinutes(u64),
+    SetSeconds(u64),
 }
 
 impl AppModel {
@@ -58,8 +60,13 @@ impl AppModel {
     /// The buttons shown in the popup for the current timer state.
     fn controls(&self) -> Element<'_, Message> {
         let row = match self.timer.state {
-            TimerState::Idle => widget::Row::new()
-                .push(widget::button::suggested(fl!("start")).on_press(Message::Start)),
+            TimerState::Idle => {
+                let can_start = !self.timer.duration.is_zero();
+                widget::Row::new().push(
+                    widget::button::suggested(fl!("start"))
+                        .on_press_maybe(can_start.then_some(Message::Start)),
+                )
+            }
             TimerState::Running { .. } => widget::Row::new()
                 .push(widget::button::standard(fl!("pause")).on_press(Message::Pause))
                 .push(widget::button::destructive(fl!("reset")).on_press(Message::Reset)),
@@ -88,6 +95,33 @@ impl AppModel {
             .push(self.preset_button(5))
             .push(self.preset_button(10))
             .push(self.preset_button(15))
+            .spacing(8)
+            .into()
+    }
+
+    /// Minutes and seconds spin buttons for a custom duration.
+    fn manual_entry(&self) -> Element<'_, Message> {
+        let total = self.timer.duration.as_secs();
+        let minutes = total / 60;
+        let seconds = total % 60;
+
+        widget::Row::new()
+            .push(widget::spin_button(
+                fl!("minutes-value", minutes = minutes),
+                minutes,
+                1,
+                0,
+                999,
+                Message::SetMinutes,
+            ))
+            .push(widget::spin_button(
+                fl!("seconds-value", seconds = seconds),
+                seconds,
+                1,
+                0,
+                59,
+                Message::SetSeconds,
+            ))
             .spacing(8)
             .into()
     }
@@ -175,6 +209,7 @@ impl cosmic::Application for AppModel {
             .push(self.controls())
             .push(widget::divider::horizontal::default())
             .push(self.presets())
+            .push(self.manual_entry())
             .align_x(Alignment::Center)
             .spacing(12)
             .padding(12);
@@ -199,6 +234,16 @@ impl cosmic::Application for AppModel {
                 self.timer.tick(SystemTime::now());
             }
             Message::SetDuration(duration) => self.timer.set_duration(duration),
+            Message::SetMinutes(minutes) => {
+                let seconds = self.timer.duration.as_secs() % 60;
+                self.timer
+                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
+            }
+            Message::SetSeconds(seconds) => {
+                let minutes = self.timer.duration.as_secs() / 60;
+                self.timer
+                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
+            }
         }
         Task::none()
     }

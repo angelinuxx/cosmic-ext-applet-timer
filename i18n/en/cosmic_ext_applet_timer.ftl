@@ -5,3 +5,5 @@ resume = Resume
 reset = Reset
 done = Done
 preset-minutes = { $minutes } min
+minutes-value = { $minutes } min
+seconds-value = { $seconds } sec
