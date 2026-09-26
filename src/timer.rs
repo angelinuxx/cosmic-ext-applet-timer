@@ -69,6 +69,15 @@ impl Timer {
             TimerState::Expired => Duration::ZERO,
         }
     }
+
+    pub fn progress(&self, now: SystemTime) -> f32 {
+        let elapsed = self.duration.saturating_sub(self.remaining(now));
+        let duration = self.duration.as_secs_f32();
+        if duration == 0.0 {
+            return 1.0;
+        }
+        elapsed.as_secs_f32() / duration
+    }
 }
 
 pub fn format_remaining(remaining: Duration) -> String {
@@ -90,6 +99,13 @@ mod tests {
 
     fn at(secs: u64) -> SystemTime {
         SystemTime::UNIX_EPOCH + Duration::from_secs(secs)
+    }
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() < 1e-6,
+            "expected {expected}, got {actual}"
+        );
     }
 
     #[test]
@@ -165,6 +181,27 @@ mod tests {
         timer.reset();
 
         assert!(matches!(timer.state, TimerState::Idle));
+    }
+
+    #[test]
+    fn progress_is_zero_when_idle() {
+        let timer = Timer::new(Duration::from_secs(300));
+        assert_close(timer.progress(at(0)), 0.0);
+    }
+
+    #[test]
+    fn progress_is_half_way_through_a_running_timer() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.start(at(100));
+        assert_close(timer.progress(at(250)), 0.5);
+    }
+
+    #[test]
+    fn progress_is_one_when_expired() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.start(at(100));
+        timer.tick(at(400));
+        assert_close(timer.progress(at(400)), 1.0);
     }
 
     #[test]

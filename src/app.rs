@@ -57,18 +57,16 @@ impl AppModel {
     /// The buttons shown in the popup for the current timer state.
     fn controls(&self) -> Element<'_, Message> {
         let row = match self.timer.state {
-            TimerState::Idle => {
-                widget::Row::new().push(widget::button::suggested(fl!("start")).on_press(Message::Start))
-            }
+            TimerState::Idle => widget::Row::new()
+                .push(widget::button::suggested(fl!("start")).on_press(Message::Start)),
             TimerState::Running { .. } => widget::Row::new()
                 .push(widget::button::standard(fl!("pause")).on_press(Message::Pause))
                 .push(widget::button::destructive(fl!("reset")).on_press(Message::Reset)),
             TimerState::Paused { .. } => widget::Row::new()
                 .push(widget::button::suggested(fl!("resume")).on_press(Message::Resume))
                 .push(widget::button::destructive(fl!("reset")).on_press(Message::Reset)),
-            TimerState::Expired => {
-                widget::Row::new().push(widget::button::suggested(fl!("done")).on_press(Message::Reset))
-            }
+            TimerState::Expired => widget::Row::new()
+                .push(widget::button::suggested(fl!("done")).on_press(Message::Reset)),
         };
         row.spacing(8).into()
     }
@@ -146,10 +144,13 @@ impl cosmic::Application for AppModel {
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Message> {
-        let remaining = format_remaining(self.timer.remaining(SystemTime::now()));
+        let now = SystemTime::now();
+        let remaining = format_remaining(self.timer.remaining(now));
+        let progress = self.timer.progress(now);
 
         let content = widget::Column::new()
             .push(widget::text::title1(remaining))
+            .push(widget::progress_bar::determinate_linear(progress))
             .push(self.controls())
             .align_x(Alignment::Center)
             .spacing(12)
