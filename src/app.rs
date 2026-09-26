@@ -157,6 +157,20 @@ impl cosmic::Application for AppModel {
 
     fn view(&self) -> Element<'_, Message> {
         let idle = matches!(self.timer.state, TimerState::Idle);
+        let expired = matches!(self.timer.state, TimerState::Expired);
+
+        // An expired timer stands out on the accent colour and a click
+        // acknowledges it instead of opening the popup.
+        let class = if expired {
+            cosmic::theme::Button::Suggested
+        } else {
+            cosmic::theme::Button::AppletIcon
+        };
+        let on_press = if expired {
+            Message::Reset
+        } else {
+            Message::TogglePopup
+        };
 
         // Icon only: when idle, or on a vertical panel where text does not fit.
         if idle || !self.core.applet.is_horizontal() {
@@ -164,7 +178,8 @@ impl cosmic::Application for AppModel {
                 .core
                 .applet
                 .icon_button(ICON_NAME)
-                .on_press(Message::TogglePopup)
+                .on_press(on_press)
+                .class(class)
                 .into();
         }
 
@@ -192,8 +207,8 @@ impl cosmic::Application for AppModel {
             widget::container(content).center_y(Length::Fixed(button_height)),
         )
         .padding([0, major_padding])
-        .on_press(Message::TogglePopup)
-        .class(cosmic::theme::Button::AppletIcon);
+        .on_press(on_press)
+        .class(class);
 
         self.core.applet.autosize_window(button).into()
     }
