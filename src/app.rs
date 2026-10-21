@@ -173,14 +173,16 @@ impl cosmic::Application for AppModel {
         };
 
         // Icon only: when idle, or on a vertical panel where text does not fit.
+        // Both branches go through `autosize_window` so the panel shrinks the
+        // window back when the text disappears.
         if idle || !self.core.applet.is_horizontal() {
-            return self
+            let button = self
                 .core
                 .applet
                 .icon_button(ICON_NAME)
                 .on_press(on_press)
-                .class(class)
-                .into();
+                .class(class);
+            return self.core.applet.autosize_window(button).into();
         }
 
         let (icon_size, _) = self.core.applet.suggested_size(true);
