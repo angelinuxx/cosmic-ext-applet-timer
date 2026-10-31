@@ -156,15 +156,15 @@ in the panel is the visual signal.
 
 ### Persistence (`src/config.rs`, `src/state.rs`)
 
-- Settings (presets, sound on/off): `Config` with `CosmicConfigEntry`, stored
-  under `~/.config/cosmic/<APP_ID>/v1/`, watched with `watch_config`.
-- Runtime state (timers with `ends_at`): `State` via cosmic-config's state
-  constructor (expected `Config::new_state`, writes under `~/.local/state/`).
+- Settings (presets in minutes, sound on/off): `Config` with
+  `CosmicConfigEntry`, stored under `~/.config/cosmic/<APP_ID>/v1/`, watched
+  with `watch_config`. Missing keys are written with defaults at startup so
+  the files exist for hand editing (no settings page yet).
+- Runtime state (timers with `ends_at`): `State` via `Config::new_state`
+  (verified at the pinned rev), writes under `~/.local/state/cosmic/`.
   Saved on every state transition, never on tick. Reloaded at startup; a
   `Running` timer whose `ends_at` is in the past becomes `Expired` on the
   first tick and plays the sound immediately.
-- Fallback if the state API is not available in the pinned libcosmic rev: a
-  RON/JSON file under `~/.local/state/` written with `serde`.
 
 ### Project layout
 
@@ -215,8 +215,8 @@ checklist.
 5. **Reloading during development.** `just dev-reload` = rebuild +
    `pkill cosmic-panel` (cosmic-session restarts it). Logs via
    `journalctl --user -f` or by running the binary from a terminal.
-6. **State persistence API** in cosmic-config must be verified in the pinned
-   rev at M3 (see fallback above).
+6. **State persistence API** in cosmic-config: verified at the pinned rev
+   (`Config::new_state`, `CosmicConfigEntry` derive).
 7. **Sound.** Depends on `pw-play` (PipeWire) and the freedesktop sound theme
    being installed. If nothing plays, check the journal for the logged error.
 8. **Toolchain.** `edition = "2024"` and async closures need Rust >= 1.85;

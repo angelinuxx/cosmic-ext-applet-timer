@@ -4,13 +4,16 @@ use std::time::{Duration, SystemTime};
 
 use cosmic::Element;
 use cosmic::app::Task;
+use cosmic::cosmic_config;
 use cosmic::iced::platform_specific::shell::wayland::commands::popup::{destroy_popup, get_popup};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Limits, Subscription};
 use cosmic::widget;
 
+use crate::config::{self, Config};
 use crate::fl;
 use crate::sound;
+use crate::state::{self, State};
 use crate::timer::{Event, Timer, TimerState, format_remaining};
 
 const ICON_NAME: &str = "alarm-symbolic";
@@ -19,6 +22,9 @@ pub struct AppModel {
     core: cosmic::Core,
     popup: Option<Id>,
     timer: Timer,
+    config: Config,
+    /// Where the timer is persisted; `None` if the state store could not be opened.
+    state_handler: Option<cosmic_config::Config>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,9 +40,49 @@ pub enum Message {
     SetDuration(Duration),
     SetMinutes(u64),
     SetSeconds(u64),
+    ConfigChanged(Config),
 }
 
 impl AppModel {
+    /// Handles a message and returns the follow-up task. Called by `update`,
+    /// which saves the timer afterwards if the message changed it.
+    fn handle(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::TogglePopup => return self.toggle_popup(),
+            Message::PopupClosed(id) => {
+                if self.popup == Some(id) {
+                    self.popup = None;
+                }
+            }
+            Message::Start => self.timer.start(SystemTime::now()),
+            Message::Pause => self.timer.pause(SystemTime::now()),
+            Message::Resume => self.timer.resume(SystemTime::now()),
+            Message::Reset => self.timer.reset(),
+            Message::Tick => {
+                if let Some(Event::Expired) = self.timer.tick(SystemTime::now()) {
+                    return cosmic::task::future(async {
+                        sound::play_expired().await;
+                        Message::SoundPlayed
+                    });
+                }
+            }
+            Message::SoundPlayed => {}
+            Message::SetDuration(duration) => self.timer.set_duration(duration),
+            Message::SetMinutes(minutes) => {
+                let seconds = self.timer.duration.as_secs() % 60;
+                self.timer
+                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
+            }
+            Message::SetSeconds(seconds) => {
+                let minutes = self.timer.duration.as_secs() / 60;
+                self.timer
+                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
+            }
+            Message::ConfigChanged(config) => self.config = config,
+        }
+        Task::none()
+    }
+
     fn toggle_popup(&mut self) -> Task<Message> {
         if let Some(id) = self.popup.take() {
             destroy_popup(id)
@@ -91,14 +137,14 @@ impl AppModel {
             .into()
     }
 
-    /// The preset row: quick durations, enabled only while idle.
+    /// The preset row: quick durations from the config, enabled only while idle.
     fn presets(&self) -> Element<'_, Message> {
-        widget::Row::new()
-            .push(self.preset_button(5))
-            .push(self.preset_button(10))
-            .push(self.preset_button(15))
-            .spacing(8)
-            .into()
+        let buttons = self
+            .config
+            .presets
+            .iter()
+            .map(|&minutes| self.preset_button(minutes));
+        widget::Row::with_children(buttons).spacing(8).into()
     }
 
     /// Minutes and seconds spin buttons for a custom duration.
@@ -145,10 +191,13 @@ impl cosmic::Application for AppModel {
     }
 
     fn init(core: cosmic::Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
+        let (state_handler, state) = state::load(Self::APP_ID);
         let app = AppModel {
             core,
             popup: None,
-            timer: Timer::new(Duration::from_mins(5)),
+            timer: state.timer,
+            config: config::load(Self::APP_ID),
+            state_handler,
         };
         (app, Task::none())
     }
@@ -237,47 +286,34 @@ impl cosmic::Application for AppModel {
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
-        match message {
-            Message::TogglePopup => return self.toggle_popup(),
-            Message::PopupClosed(id) => {
-                if self.popup == Some(id) {
-                    self.popup = None;
-                }
-            }
-            Message::Start => self.timer.start(SystemTime::now()),
-            Message::Pause => self.timer.pause(SystemTime::now()),
-            Message::Resume => self.timer.resume(SystemTime::now()),
-            Message::Reset => self.timer.reset(),
-            Message::Tick => {
-                if let Some(Event::Expired) = self.timer.tick(SystemTime::now()) {
-                    return cosmic::task::future(async {
-                        sound::play_expired().await;
-                        Message::SoundPlayed
-                    });
-                }
-            }
-            Message::SoundPlayed => {}
-            Message::SetDuration(duration) => self.timer.set_duration(duration),
-            Message::SetMinutes(minutes) => {
-                let seconds = self.timer.duration.as_secs() % 60;
-                self.timer
-                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
-            }
-            Message::SetSeconds(seconds) => {
-                let minutes = self.timer.duration.as_secs() / 60;
-                self.timer
-                    .set_duration(Duration::from_secs(minutes * 60 + seconds));
-            }
+        // Save on transitions only: a tick leaves the timer untouched until it
+        // expires, so comparing before and after never writes on every tick.
+        let before = self.timer.clone();
+        let task = self.handle(message);
+        if self.timer != before
+            && let Some(handler) = &self.state_handler
+        {
+            state::save(
+                handler,
+                &State {
+                    timer: self.timer.clone(),
+                },
+            );
         }
-        Task::none()
+        task
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        if matches!(self.timer.state, TimerState::Running { .. }) {
+        let tick = if matches!(self.timer.state, TimerState::Running { .. }) {
             cosmic::iced::time::every(Duration::from_secs(1)).map(|_| Message::Tick)
         } else {
             Subscription::none()
-        }
+        };
+        let config = self
+            .core
+            .watch_config::<Config>(Self::APP_ID)
+            .map(|update| Message::ConfigChanged(update.config));
+        Subscription::batch([tick, config])
     }
 
     fn style(&self) -> Option<cosmic::iced::theme::Style> {

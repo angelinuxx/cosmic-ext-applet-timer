@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 mod app;
+mod config;
 mod i18n;
 mod sound;
+mod state;
 mod timer;
 
 fn main() -> cosmic::iced::Result {

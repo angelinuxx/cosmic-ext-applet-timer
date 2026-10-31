@@ -2,11 +2,14 @@
 
 use std::time::{Duration, SystemTime};
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, PartialEq)]
 pub enum Event {
     Expired,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TimerState {
     Idle,
     Running { ends_at: SystemTime },
@@ -14,9 +17,16 @@ pub enum TimerState {
     Expired,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Timer {
     pub duration: Duration,
     pub state: TimerState,
+}
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self::new(Duration::from_mins(5))
+    }
 }
 
 impl Timer {
@@ -238,5 +248,22 @@ mod tests {
     #[test]
     fn formats_hours_when_over_sixty_minutes() {
         assert_eq!(format_remaining(Duration::from_secs(3_725)), "1:02:05");
+    }
+
+    #[test]
+    fn running_timer_survives_a_save_and_load() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.start(at(100));
+        let saved = ron::to_string(&timer).unwrap();
+        let loaded: Timer = ron::from_str(&saved).unwrap();
+        assert_eq!(loaded, timer);
+    }
+
+    #[test]
+    fn timer_that_ended_while_saved_expires_on_first_tick() {
+        let mut timer = Timer::new(Duration::from_secs(300));
+        timer.start(at(100));
+        let mut loaded: Timer = ron::from_str(&ron::to_string(&timer).unwrap()).unwrap();
+        assert_eq!(loaded.tick(at(1_000)), Some(Event::Expired));
     }
 }
