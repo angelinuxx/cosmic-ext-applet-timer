@@ -10,27 +10,30 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     /// Quick durations shown in the popup, in minutes.
     pub presets: Vec<u64>,
+    /// Whether a sound plays when a timer expires.
+    pub sound_enabled: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             presets: vec![5, 10, 15],
+            sound_enabled: true,
         }
     }
 }
 
-/// Reads the settings. Missing keys are written with their defaults so the
-/// files exist for the user to edit.
-pub fn load(app_id: &str) -> Config {
+/// Opens the settings store and reads the settings. Missing keys are written
+/// with their defaults so the files exist for the user to edit.
+pub fn load(app_id: &str) -> (Option<cosmic_config::Config>, Config) {
     let handler = match cosmic_config::Config::new(app_id, Config::VERSION) {
         Ok(handler) => handler,
         Err(err) => {
             eprintln!("failed to open config: {err}");
-            return Config::default();
+            return (None, Config::default());
         }
     };
-    match Config::get_entry(&handler) {
+    let config = match Config::get_entry(&handler) {
         Ok(config) => config,
         Err((errors, config)) => {
             let broken: Vec<_> = errors.iter().filter(|err| err.is_err()).collect();
@@ -45,5 +48,6 @@ pub fn load(app_id: &str) -> Config {
             }
             config
         }
-    }
+    };
+    (Some(handler), config)
 }

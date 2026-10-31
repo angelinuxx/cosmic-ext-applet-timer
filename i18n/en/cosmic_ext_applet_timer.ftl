@@ -10,3 +10,4 @@ seconds-value = { $seconds } sec
 label-placeholder = Label
 add-timer = Add timer
 more-timers = +{ $count }
+sound = Sound

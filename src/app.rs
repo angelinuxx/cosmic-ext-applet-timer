@@ -27,6 +27,8 @@ pub struct AppModel {
     /// The timers and the next free id; persisted whenever it changes.
     state: State,
     config: Config,
+    /// Where the settings are written; `None` if the store could not be opened.
+    config_handler: Option<cosmic_config::Config>,
     /// Where the state is persisted; `None` if the state store could not be opened.
     state_handler: Option<cosmic_config::Config>,
 }
@@ -38,6 +40,7 @@ pub enum Message {
     Tick,
     SoundPlayed,
     ConfigChanged(Config),
+    SetSoundEnabled(bool),
     AddTimer,
     RemoveTimer(u32),
     /// Panel click on an expired timer: resets every expired timer.
@@ -98,7 +101,7 @@ impl AppModel {
                 for timer in &mut self.state.timers {
                     expired |= timer.tick(now).is_some();
                 }
-                if expired {
+                if expired && self.config.sound_enabled {
                     return cosmic::task::future(async {
                         sound::play_expired().await;
                         Message::SoundPlayed
@@ -107,6 +110,13 @@ impl AppModel {
             }
             Message::SoundPlayed => {}
             Message::ConfigChanged(config) => self.config = config,
+            Message::SetSoundEnabled(enabled) => {
+                if let Some(handler) = &self.config_handler
+                    && let Err(err) = self.config.set_sound_enabled(handler, enabled)
+                {
+                    eprintln!("failed to save sound setting: {err}");
+                }
+            }
             Message::AddTimer => {
                 let minutes = self.config.presets.first().copied().unwrap_or(5);
                 let timer = Timer::new(self.state.next_id, Duration::from_mins(minutes));
@@ -291,11 +301,13 @@ impl cosmic::Application for AppModel {
 
     fn init(core: cosmic::Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
         let (state_handler, state) = state::load(Self::APP_ID);
+        let (config_handler, config) = config::load(Self::APP_ID);
         let app = AppModel {
             core,
             popup: None,
             state,
-            config: config::load(Self::APP_ID),
+            config,
+            config_handler,
             state_handler,
         };
         (app, Task::none())
@@ -387,9 +399,20 @@ impl cosmic::Application for AppModel {
                 .padding([0, 12, 0, 0]),
         );
 
+        let footer = widget::Row::new()
+            .push(widget::button::standard(fl!("add-timer")).on_press(Message::AddTimer))
+            .push(widget::space::horizontal())
+            .push(
+                widget::toggler(self.config.sound_enabled)
+                    .label(fl!("sound"))
+                    .on_toggle(Message::SetSoundEnabled),
+            )
+            .align_y(Alignment::Center)
+            .spacing(8);
+
         let content = widget::Column::new()
             .push(widget::container(list).max_height(MAX_LIST_HEIGHT))
-            .push(widget::button::standard(fl!("add-timer")).on_press(Message::AddTimer))
+            .push(footer)
             .align_x(Alignment::Center)
             .spacing(12)
             .padding(12);
