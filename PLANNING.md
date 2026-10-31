@@ -259,7 +259,7 @@ tests, subscriptions, `&` / `&mut` in practice.
 Learn: async `Task`s, spawning external processes, COSMIC theming, more
 widgets.
 
-### M3: persistence
+### M3: persistence (done 2026-10-31)
 
 - `config.rs` with presets and settings via cosmic-config.
 - `state.rs` with running timers. Timer survives `pkill cosmic-panel` and
