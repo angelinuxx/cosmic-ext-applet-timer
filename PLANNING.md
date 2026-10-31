@@ -229,7 +229,7 @@ checklist.
 Each milestone ends with something installed and clickable in the panel, and a
 commit.
 
-### M0: skeleton in the panel
+### M0: skeleton in the panel (done)
 
 - Upgrade COSMIC packages; pick and pin the libcosmic rev.
 - `Cargo.toml`, `rust-toolchain.toml`, `main.rs`, `app.rs` with an `AppModel`
@@ -240,7 +240,7 @@ commit.
 Learn: cargo, the `Application` trait, `view` / `view_window` / `update`, the
 popup cycle, how an applet is installed.
 
-### M1: one running timer
+### M1: one running timer (done)
 
 - `timer.rs` with `TimerState` and methods, tests first (`cargo test`).
 - Fixed 5 minute duration. Popup with big time and Start / Pause / Resume /
@@ -249,7 +249,7 @@ popup cycle, how an applet is installed.
 Learn: enums with data, `match`, `Option`, `SystemTime` / `Duration`, unit
 tests, subscriptions, `&` / `&mut` in practice.
 
-### M2: chosen duration, expiry, sound (end of MVP)
+### M2: chosen duration, expiry, sound (end of MVP) (done 2026-10-31)
 
 - Presets 5 / 10 / 15 and minutes/seconds spin buttons.
 - `Expired` state: `00:00` on accent background in the panel, click to
