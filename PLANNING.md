@@ -130,7 +130,9 @@ becomes visible). `update` calls `tick(now)` and acts on the returned event.
 
 - Idle: symbolic icon only.
 - Running / Paused: icon + `core.applet.text()` with `mm:ss` under one hour,
-  `h:mm` above; dimmed while paused. Vertical panel: icon only.
+  `h:mm:ss` above; dimmed (theme foreground at half opacity) while paused.
+  Vertical panel: icon above the time split one part per line (`04` / `50`),
+  then the `+N` badge.
 - Expired: `00:00` on a background using the theme accent colour (from
   `cosmic::theme::active()`, never hard-coded RGB). Left click acknowledges
   and returns to Idle.

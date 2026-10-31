@@ -284,6 +284,19 @@ impl AppModel {
     }
 }
 
+/// Panel text for a paused timer: the applet's usual foreground colour from
+/// the active theme, at half opacity.
+fn dimmed_text(theme: &cosmic::Theme) -> cosmic::iced::widget::text::Style {
+    let cosmic = theme.cosmic();
+    let mut color: cosmic::iced::Color = cosmic.background(theme.transparent).on.into();
+    color.a *= 0.5;
+    cosmic::iced::widget::text::Style {
+        color: Some(color),
+        selected_fill: cosmic.accent.base.into(),
+        selected_text_color: None,
+    }
+}
+
 impl cosmic::Application for AppModel {
     type Executor = cosmic::executor::Default;
     type Flags = ();
@@ -335,10 +348,10 @@ impl cosmic::Application for AppModel {
             Message::TogglePopup
         };
 
-        // Icon only: when every timer is idle, or on a vertical panel where
-        // text does not fit. Both branches go through `autosize_window` so the
-        // panel shrinks the window back when the text disappears.
-        let Some(timer) = shown.filter(|_| self.core.applet.is_horizontal()) else {
+        // Icon only when every timer is idle. Both branches go through
+        // `autosize_window` so the panel shrinks the window back when the text
+        // disappears.
+        let Some(timer) = shown else {
             let button = self
                 .core
                 .applet
@@ -348,9 +361,11 @@ impl cosmic::Application for AppModel {
             return self.core.applet.autosize_window(button).into();
         };
 
+        let horizontal = self.core.applet.is_horizontal();
         let (icon_size, _) = self.core.applet.suggested_size(true);
         let (major_padding, minor_padding) = self.core.applet.suggested_padding(true);
-        let button_height = f32::from(icon_size + 2 * minor_padding);
+        // The panel's thickness: height of a horizontal panel, width of a vertical one.
+        let thickness = f32::from(icon_size + 2 * minor_padding);
 
         let icon = widget::icon::from_name(ICON_NAME)
             .symbolic(true)
@@ -358,24 +373,50 @@ impl cosmic::Application for AppModel {
             .icon()
             .width(Length::Fixed(f32::from(icon_size)))
             .height(Length::Fixed(f32::from(icon_size)));
+
+        // One line on a horizontal panel; on a vertical one each part of the
+        // time ("04", "50") gets its own line to fit the panel's width.
         let remaining = format_remaining(timer.remaining(now));
+        let mut lines: Vec<String> = if horizontal {
+            vec![remaining]
+        } else {
+            remaining.split(':').map(str::to_owned).collect()
+        };
         // "+N" for the other timers that are not idle; the shown one is active.
         let others = self.state.timers.iter().filter(|t| t.is_active()).count() - 1;
-        let badge = (others > 0).then(|| self.core.applet.text(fl!("more-timers", count = others)));
-        let content = widget::Row::new()
-            .push(icon)
-            .push(self.core.applet.text(remaining))
-            .push_maybe(badge)
-            .align_y(Alignment::Center)
-            .spacing(4);
+        if others > 0 {
+            lines.push(fl!("more-timers", count = others));
+        }
+        // A paused timer is shown dimmed. It only wins the panel when no timer
+        // is running or expired, so the badge is dimmed along with it.
+        let paused = matches!(timer.state, TimerState::Paused { .. });
+        let texts = lines.into_iter().map(|line| {
+            let text = self.core.applet.text(line);
+            let text = if paused {
+                text.class(cosmic::theme::Text::Custom(dimmed_text))
+            } else {
+                text
+            };
+            Element::from(text)
+        });
+        let children = std::iter::once(Element::from(icon)).chain(texts);
 
         // `button_from_element` fixes the width to the icon size, which would
-        // clip the text; build the button by hand with a free width instead,
-        // centring the content in the panel's height.
-        let button = widget::button::custom(
-            widget::container(content).center_y(Length::Fixed(button_height)),
-        )
-        .padding([0, major_padding])
+        // clip the text; build the button by hand, free along the panel and
+        // centred across it.
+        let button = if horizontal {
+            let content = widget::Row::with_children(children)
+                .align_y(Alignment::Center)
+                .spacing(4);
+            widget::button::custom(widget::container(content).center_y(Length::Fixed(thickness)))
+                .padding([0, major_padding])
+        } else {
+            let content = widget::Column::with_children(children)
+                .align_x(Alignment::Center)
+                .spacing(2);
+            widget::button::custom(widget::container(content).center_x(Length::Fixed(thickness)))
+                .padding([major_padding, 0])
+        }
         .on_press(on_press)
         .class(class);
 
