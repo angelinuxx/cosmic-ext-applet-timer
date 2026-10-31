@@ -272,7 +272,7 @@ widgets.
 
 Learn: `serde`, custom derives, `watch_config`, file I/O through a library.
 
-### M4: multiple labelled timers
+### M4: multiple labelled timers (done 2026-10-31)
 
 - `Vec<Timer>` in the UI: one card per timer, label field, Add / Remove.
 - Panel shows the soonest timer plus `+N`.
