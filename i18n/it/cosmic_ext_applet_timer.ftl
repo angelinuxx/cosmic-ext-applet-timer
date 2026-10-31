@@ -1,0 +1,13 @@
+app-title = Timer
+start = Avvia
+pause = Pausa
+resume = Riprendi
+reset = Azzera
+done = Fatto
+preset-minutes = { $minutes } min
+minutes-value = { $minutes } min
+seconds-value = { $seconds } s
+label-placeholder = Etichetta
+add-timer = Aggiungi timer
+more-timers = +{ $count }
+sound = Suono

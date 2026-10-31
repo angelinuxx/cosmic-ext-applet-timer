@@ -283,7 +283,7 @@ Learn: `Vec`, iterators, ownership inside collections, messages carrying ids.
 
 ### M5: polish
 
-- Settings toggle for the expiry sound.
-- Italian translation. Vertical panel layout.
-- Complete `metainfo.xml`, README, screenshot.
-- Optional libcosmic rev bump.
+- Sound on/off toggler in the popup footer, stored in `Config` (done).
+- Italian translation (done). Vertical panel layout, dimmed paused text (done).
+- Deferred (2026-10-31): `LICENSE`, `metainfo.xml`, README, screenshot.
+- Optional libcosmic rev bump (separate task).

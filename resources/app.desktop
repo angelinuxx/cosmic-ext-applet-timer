@@ -1,6 +1,8 @@
 [Desktop Entry]
 Name=Timer
+Name[it]=Timer
 Comment=A countdown timer applet for the COSMIC desktop
+Comment[it]=Applet con timer a conto alla rovescia per il desktop COSMIC
 Type=Application
 Exec=cosmic-ext-applet-timer
 Terminal=false
