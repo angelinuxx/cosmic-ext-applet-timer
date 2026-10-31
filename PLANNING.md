@@ -1,7 +1,7 @@
 # cosmic-ext-applet-timer: planning
 
 A generic countdown timer applet for the COSMIC panel (System76, libcosmic/iced,
-Rust). Not a Pomodoro: a plain "set a duration, start, get notified" timer, with
+Rust). Not a Pomodoro: a plain "set a duration, start, get alerted" timer, with
 multiple labelled timers as a later increment.
 
 This document is the agreed design and milestone plan (2026-09-25). `CLAUDE.md`
@@ -14,7 +14,8 @@ Must have (MVP = M0..M2):
 - Set a duration: quick presets (5 / 10 / 15 min) plus manual minutes/seconds.
 - Start, pause, resume, reset from the applet popup.
 - Remaining time visible in the panel while running.
-- System notification on expiry.
+- A sound on expiry (no desktop notification: the panel state is the visual
+  signal).
 - An "expired, waiting for acknowledgement" state visible in the panel until
   the user clicks it.
 
@@ -22,8 +23,8 @@ Later increments:
 
 - Persist running timers and settings across applet/panel restarts (M3).
 - Several timers in parallel, each with a label (M4).
-- Sound on expiry via an external player, Italian translation, vertical panel
-  layout, packaging polish (M5).
+- Sound on/off toggle, Italian translation, vertical panel layout, packaging
+  polish (M5).
 
 Out of scope: Pomodoro work/break cycles, blinking panel text, an integrated
 audio stack (rodio and friends).
@@ -105,7 +106,7 @@ pub struct Timer {
 Methods: `start(now)`, `pause(now)`, `resume(now)`, `reset()`,
 `remaining(now) -> Duration`, `progress(now) -> f32`,
 `tick(now) -> Option<Event>` (moves Running -> Expired when `now >= ends_at`
-and returns `Some(Event::Expired)` so `update` knows when to notify).
+and returns `Some(Event::Expired)` so `update` knows when to play the sound).
 
 Every method takes `now` as a parameter instead of reading the clock, so the
 module is unit-testable without waiting.
@@ -143,16 +144,15 @@ Top to bottom: big remaining time (`title1`), progress bar, control row
 seconds). In M4 each timer becomes a card with a label field, plus an
 "Add timer" button.
 
-### Notification and sound (`src/notify.rs`)
+### Sound (`src/sound.rs`)
 
-On the Running -> Expired transition `update` returns a `Task` that sends a
-desktop notification through `notify-rust` (feature `z`, i.e. zbus, to share
-the D-Bus stack with libcosmic). Title "Timer finished", body with label and
-duration.
+On the Running -> Expired transition `update` returns a `Task` that spawns
+`pw-play` via `tokio::process::Command` on
+`/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga`. Failures are
+logged, never fatal. No audio crate. A settings toggle comes in M5.
 
-Sound (M5): spawn `pw-play` via `tokio::process::Command` on
-`/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga`, behind a
-settings toggle. No audio crate.
+No desktop notification (decided 2026-10-30): the highlighted `Expired` state
+in the panel is the visual signal.
 
 ### Persistence (`src/config.rs`, `src/state.rs`)
 
@@ -162,7 +162,7 @@ settings toggle. No audio crate.
   constructor (expected `Config::new_state`, writes under `~/.local/state/`).
   Saved on every state transition, never on tick. Reloaded at startup; a
   `Running` timer whose `ends_at` is in the past becomes `Expired` on the
-  first tick and notifies immediately.
+  first tick and plays the sound immediately.
 - Fallback if the state API is not available in the pinned libcosmic rev: a
   RON/JSON file under `~/.local/state/` written with `serde`.
 
@@ -182,7 +182,7 @@ cosmic-ext-applet-timer/
 │   ├── timer.rs            pure timer logic + unit tests
 │   ├── config.rs           settings (cosmic-config)
 │   ├── state.rs            persisted runtime state
-│   ├── notify.rs           notification + sound
+│   ├── sound.rs            expiry sound (pw-play)
 │   └── i18n.rs
 ├── PLANNING.md
 └── CLAUDE.md
@@ -217,9 +217,8 @@ checklist.
    `journalctl --user -f` or by running the binary from a terminal.
 6. **State persistence API** in cosmic-config must be verified in the pinned
    rev at M3 (see fallback above).
-7. **Notifications.** zbus version mismatch between notify-rust and libcosmic
-   only costs compile time. If nothing shows up, check COSMIC's Do Not Disturb
-   before the code.
+7. **Sound.** Depends on `pw-play` (PipeWire) and the freedesktop sound theme
+   being installed. If nothing plays, check the journal for the logged error.
 8. **Toolchain.** `edition = "2024"` and async closures need Rust >= 1.85;
    `rust-toolchain.toml` pins the version.
 9. **Learning curve.** The borrow checker will slow early milestones more than
@@ -250,21 +249,22 @@ popup cycle, how an applet is installed.
 Learn: enums with data, `match`, `Option`, `SystemTime` / `Duration`, unit
 tests, subscriptions, `&` / `&mut` in practice.
 
-### M2: chosen duration, expiry, notification (end of MVP)
+### M2: chosen duration, expiry, sound (end of MVP)
 
 - Presets 5 / 10 / 15 and minutes/seconds spin buttons.
 - `Expired` state: `00:00` on accent background in the panel, click to
   acknowledge.
-- Desktop notification via `notify-rust`. Progress bar.
+- Expiry sound via `pw-play` (pulled forward from M5). Progress bar.
 
-Learn: async `Task`s, D-Bus from the application side, COSMIC theming, more
+Learn: async `Task`s, spawning external processes, COSMIC theming, more
 widgets.
 
 ### M3: persistence
 
 - `config.rs` with presets and settings via cosmic-config.
 - `state.rs` with running timers. Timer survives `pkill cosmic-panel` and
-  logout; if it expired while the panel was down, notify on restart.
+  logout; if it expired while the panel was down, show `Expired` and play
+  the sound on restart.
 
 Learn: `serde`, custom derives, `watch_config`, file I/O through a library.
 
@@ -277,7 +277,7 @@ Learn: `Vec`, iterators, ownership inside collections, messages carrying ids.
 
 ### M5: polish
 
-- Sound via `pw-play` with a settings toggle.
+- Settings toggle for the expiry sound.
 - Italian translation. Vertical panel layout.
 - Complete `metainfo.xml`, README, screenshot.
 - Optional libcosmic rev bump.

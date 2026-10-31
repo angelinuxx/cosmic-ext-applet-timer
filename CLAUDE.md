@@ -39,7 +39,8 @@ Design, risks and milestones live in `PLANNING.md`; read it first.
   effect of other work. Features: `applet`, `applet-token`, `dbus-config`,
   `multi-window`, `tokio`, `wayland`, `winit`.
 - Other deps: `tokio` (time, process), `i18n-embed` + `i18n-embed-fl` +
-  `rust-embed` (Fluent), `notify-rust` (feature `z`), `serde`.
+  `rust-embed` (Fluent), `serde`. Expiry sound: external `pw-play`, no
+  audio crate, no desktop notification.
 - Target machine: Pop!_OS 24.04, COSMIC packages must be current
   (`cosmic-panel` / `cosmic-applets` 1.9.x or later).
 - `just` is the task runner.
@@ -73,7 +74,7 @@ src/app.rs       AppModel, impl cosmic::Application, Message enum
 src/timer.rs     pure timer state machine + unit tests, no UI, takes `now` as a param
 src/config.rs    settings via cosmic-config (CosmicConfigEntry)
 src/state.rs     persisted runtime state (running timers)
-src/notify.rs    desktop notification + optional sound (pw-play)
+src/sound.rs     expiry sound via pw-play
 src/i18n.rs      Fluent loader and fl! macro
 i18n/<lang>/cosmic_ext_applet_timer.ftl
 resources/       app.desktop, app.metainfo.xml, icon.svg

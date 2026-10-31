@@ -2,6 +2,7 @@
 
 mod app;
 mod i18n;
+mod sound;
 mod timer;
 
 fn main() -> cosmic::iced::Result {

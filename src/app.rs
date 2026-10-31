@@ -10,7 +10,8 @@ use cosmic::iced::{Alignment, Length, Limits, Subscription};
 use cosmic::widget;
 
 use crate::fl;
-use crate::timer::{Timer, TimerState, format_remaining};
+use crate::sound;
+use crate::timer::{Event, Timer, TimerState, format_remaining};
 
 const ICON_NAME: &str = "alarm-symbolic";
 
@@ -29,6 +30,7 @@ pub enum Message {
     Resume,
     Reset,
     Tick,
+    SoundPlayed,
     SetDuration(Duration),
     SetMinutes(u64),
     SetSeconds(u64),
@@ -247,9 +249,14 @@ impl cosmic::Application for AppModel {
             Message::Resume => self.timer.resume(SystemTime::now()),
             Message::Reset => self.timer.reset(),
             Message::Tick => {
-                // Expiry events will drive the notification in M2.
-                self.timer.tick(SystemTime::now());
+                if let Some(Event::Expired) = self.timer.tick(SystemTime::now()) {
+                    return cosmic::task::future(async {
+                        sound::play_expired().await;
+                        Message::SoundPlayed
+                    });
+                }
             }
+            Message::SoundPlayed => {}
             Message::SetDuration(duration) => self.timer.set_duration(duration),
             Message::SetMinutes(minutes) => {
                 let seconds = self.timer.duration.as_secs() % 60;

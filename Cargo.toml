@@ -9,7 +9,7 @@ description = "A countdown timer applet for the COSMIC desktop"
 i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester"] }
 i18n-embed-fl = "0.10"
 rust-embed = "8"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["process", "time"] }
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
