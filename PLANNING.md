@@ -97,7 +97,7 @@ pub enum TimerState {
 
 pub struct Timer {
     pub id: u32,                  // needed for multi-timer messages
-    pub label: String,            // empty in the MVP
+    pub label: String,
     pub duration: Duration,       // configured length, for reset and progress
     pub state: TimerState,
 }
@@ -111,9 +111,11 @@ and returns `Some(Event::Expired)` so `update` knows when to play the sound).
 Every method takes `now` as a parameter instead of reading the clock, so the
 module is unit-testable without waiting.
 
-`AppModel` holds a single `timer: Timer` until M3. Moving to `Vec<Timer>` is
-the subject of M4 (decided 2026-09-25: carrying a one-element list through
-three milestones adds noise without teaching anything).
+`AppModel` held a single `timer: Timer` until M3 (decided 2026-09-25:
+carrying a one-element list through three milestones adds noise without
+teaching anything). Since M4 it holds the persisted `State { timers:
+Vec<Timer>, next_id }`; messages address a timer by id via
+`Message::Timer(id, TimerAction)`. There is always at least one timer.
 
 `acknowledge()` is not a separate method: confirming an expired timer is a
 `reset()` from the UI's point of view.
@@ -132,8 +134,10 @@ becomes visible). `update` calls `tick(now)` and acts on the returned event.
 - Expired: `00:00` on a background using the theme accent colour (from
   `cosmic::theme::active()`, never hard-coded RGB). Left click acknowledges
   and returns to Idle.
-- Multi-timer (M4): show the timer closest to expiry, plus a `+N` badge when
-  others are running. Any Expired timer wins.
+- Multi-timer (M4): `timer::panel_timer` picks an Expired timer first, then
+  the Running one closest to expiry, then the Paused one with the least time
+  left; a `+N` badge counts the other non-idle timers. No label in the panel.
+  Clicking an expired panel button acknowledges every expired timer.
 - Left click opens the popup (convention of the official applets).
 
 ### Popup (`view_window`)
