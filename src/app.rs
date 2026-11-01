@@ -433,12 +433,9 @@ impl cosmic::Application for AppModel {
 
         // A column hands its children the remaining height in order, so an
         // uncapped list would take it all and push the Add button out of the
-        // popup. The right padding keeps the scrollbar off the cards.
-        let list = widget::scrollable(
-            widget::Column::with_children(cards)
-                .spacing(12)
-                .padding([0, 12, 0, 0]),
-        );
+        // popup. The embedded scrollbar takes space beside the cards only
+        // while it is visible, so the side padding stays even otherwise.
+        let list = widget::scrollable(widget::Column::with_children(cards).spacing(12)).spacing(8);
 
         let footer = widget::Row::new()
             .push(widget::button::standard(fl!("add-timer")).on_press(Message::AddTimer))
@@ -446,6 +443,7 @@ impl cosmic::Application for AppModel {
             .push(
                 widget::toggler(self.config.sound_enabled)
                     .label(fl!("sound"))
+                    .spacing(8)
                     .on_toggle(Message::SetSoundEnabled),
             )
             .align_y(Alignment::Center)
