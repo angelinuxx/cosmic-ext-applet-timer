@@ -8,6 +8,6 @@ Exec=cosmic-ext-applet-timer
 Terminal=false
 Categories=COSMIC;
 Keywords=COSMIC;Applet;Timer;Countdown;
-Icon=alarm-symbolic
+Icon=io.github.angelinuxx.CosmicExtAppletTimer-symbolic
 NoDisplay=true
 X-CosmicApplet=true

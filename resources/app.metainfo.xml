@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.angelinuxx.CosmicExtAppletTimer</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Timer</name>
+  <summary>Countdown timer applet for the COSMIC panel</summary>
+  <summary xml:lang="it">Timer con conto alla rovescia per il pannello COSMIC</summary>
+  <developer id="io.github.angelinuxx">
+    <name>Angelo Puddu</name>
+  </developer>
+  <description>
+    <p>
+      A countdown timer that lives in the COSMIC panel. The remaining time is
+      shown next to the icon; click it to open the timer list.
+    </p>
+    <p xml:lang="it">
+      Un timer con conto alla rovescia che vive nel pannello COSMIC. Il tempo
+      rimanente compare accanto all'icona; un clic apre l'elenco dei timer.
+    </p>
+    <ul>
+      <li>Several labelled timers running in parallel</li>
+      <li xml:lang="it">Più timer con etichetta in parallelo</li>
+      <li>Preset durations and custom minutes and seconds</li>
+      <li xml:lang="it">Durate predefinite e minuti e secondi personalizzati</li>
+      <li>Pause, resume and reset</li>
+      <li xml:lang="it">Pausa, ripresa e azzeramento</li>
+      <li>Optional sound when a timer expires</li>
+      <li xml:lang="it">Suono facoltativo alla scadenza</li>
+      <li>Running timers survive a panel restart</li>
+      <li xml:lang="it">I timer attivi sopravvivono al riavvio del pannello</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.angelinuxx.CosmicExtAppletTimer.desktop</launchable>
+  <icon type="stock">io.github.angelinuxx.CosmicExtAppletTimer-symbolic</icon>
+  <url type="homepage">https://github.com/angelinuxx/cosmic-ext-applet-timer</url>
+  <url type="bugtracker">https://github.com/angelinuxx/cosmic-ext-applet-timer/issues</url>
+  <url type="vcs-browser">https://github.com/angelinuxx/cosmic-ext-applet-timer</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The timer list in the popup</caption>
+      <image>https://raw.githubusercontent.com/angelinuxx/cosmic-ext-applet-timer/main/resources/screenshots/popup.png</image>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>COSMIC</keyword>
+    <keyword>Applet</keyword>
+    <keyword>Timer</keyword>
+    <keyword>Countdown</keyword>
+  </keywords>
+  <provides>
+    <binary>cosmic-ext-applet-timer</binary>
+    <id>io.github.angelinuxx.CosmicExtAppletTimer.desktop</id>
+  </provides>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-01"/>
+  </releases>
+</component>

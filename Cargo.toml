@@ -2,7 +2,7 @@
 name = "cosmic-ext-applet-timer"
 version = "0.1.0"
 edition = "2024"
-license = "MPL-2.0"
+license = "MIT"
 description = "A countdown timer applet for the COSMIC desktop"
 
 [dependencies]

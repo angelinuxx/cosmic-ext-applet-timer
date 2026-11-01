@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: MIT
 
 use std::time::{Duration, SystemTime};
 
@@ -16,7 +16,8 @@ use crate::sound;
 use crate::state::{self, State};
 use crate::timer::{Timer, TimerState, format_remaining, panel_timer};
 
-const ICON_NAME: &str = "alarm-symbolic";
+/// Installed into the hicolor theme by the justfile, so it resolves under any icon theme.
+const ICON_NAME: &str = "io.github.angelinuxx.CosmicExtAppletTimer-symbolic";
 const REMOVE_ICON_NAME: &str = "edit-delete-symbolic";
 /// Leaves room for the Add button inside the popup's 700 px maximum height.
 const MAX_LIST_HEIGHT: f32 = 560.0;

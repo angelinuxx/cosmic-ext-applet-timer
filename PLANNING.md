@@ -195,7 +195,7 @@ cosmic-ext-applet-timer/
 ```
 
 Identity: crate `cosmic-ext-applet-timer`, app id
-`io.github.angelinuxx.CosmicExtAppletTimer`, licence MPL-2.0.
+`io.github.angelinuxx.CosmicExtAppletTimer`, licence MIT.
 
 ### Testing
 
@@ -281,9 +281,10 @@ Learn: `serde`, custom derives, `watch_config`, file I/O through a library.
 
 Learn: `Vec`, iterators, ownership inside collections, messages carrying ids.
 
-### M5: polish
+### M5: polish (done)
 
 - Sound on/off toggler in the popup footer, stored in `Config` (done).
 - Italian translation (done). Vertical panel layout, dimmed paused text (done).
-- Deferred (2026-10-31): `LICENSE`, `metainfo.xml`, README, screenshot.
+- `LICENSE`, `metainfo.xml`, README, screenshot, own hourglass symbolic icon
+  (done, 2026-11-01).
 - libcosmic rev bump to 95236a94 (done, 2026-11-01).

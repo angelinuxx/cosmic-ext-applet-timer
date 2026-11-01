@@ -28,7 +28,7 @@ Design, risks and milestones live in `PLANNING.md`; read it first.
 - Crate / binary / directory: `cosmic-ext-applet-timer`
 - App id: `io.github.angelinuxx.CosmicExtAppletTimer` (used for .desktop,
   icon name, cosmic-config directory)
-- Licence: MPL-2.0
+- Licence: MIT
 
 ## Toolchain
 
@@ -77,7 +77,8 @@ src/state.rs     persisted runtime state (running timers)
 src/sound.rs     expiry sound via pw-play
 src/i18n.rs      Fluent loader and fl! macro
 i18n/<lang>/cosmic_ext_applet_timer.ftl
-resources/       app.desktop, app.metainfo.xml, icon.svg
+resources/       app.desktop, app.metainfo.xml, icons/<appid>-symbolic.svg,
+                 screenshots/popup.png
 ```
 
 ## Conventions

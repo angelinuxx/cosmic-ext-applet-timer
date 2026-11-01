@@ -7,6 +7,10 @@ bin-src := cargo-target-dir / 'release' / name
 user-base := env('HOME') / '.local'
 user-bin-dst := user-base / 'bin' / name
 user-desktop-dst := user-base / 'share' / 'applications' / appid + '.desktop'
+user-metainfo-dst := user-base / 'share' / 'metainfo' / appid + '.metainfo.xml'
+icon-name := appid + '-symbolic.svg'
+icon-src := 'resources' / 'icons' / icon-name
+user-icon-dst := user-base / 'share' / 'icons' / 'hicolor' / 'scalable' / 'apps' / icon-name
 
 default: build-release
 
@@ -26,6 +30,8 @@ dev-install: build-release
     mkdir -p {{user-base}}/bin
     ln -sf {{absolute_path(bin-src)}} {{user-bin-dst}}
     install -Dm0644 resources/app.desktop {{user-desktop-dst}}
+    install -Dm0644 resources/app.metainfo.xml {{user-metainfo-dst}}
+    install -Dm0644 {{icon-src}} {{user-icon-dst}}
 
 # Rebuilds and restarts cosmic-panel to reload the applet
 dev-reload: build-release
@@ -35,7 +41,9 @@ dev-reload: build-release
 install-user: build-release
     install -Dm0755 {{bin-src}} {{user-bin-dst}}
     install -Dm0644 resources/app.desktop {{user-desktop-dst}}
+    install -Dm0644 resources/app.metainfo.xml {{user-metainfo-dst}}
+    install -Dm0644 {{icon-src}} {{user-icon-dst}}
 
 # Removes user-local files
 uninstall-user:
-    rm -f {{user-bin-dst}} {{user-desktop-dst}}
+    rm -f {{user-bin-dst}} {{user-desktop-dst}} {{user-metainfo-dst}} {{user-icon-dst}}
