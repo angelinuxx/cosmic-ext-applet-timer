@@ -23,6 +23,8 @@
       <li xml:lang="it">Più timer con etichetta in parallelo</li>
       <li>Preset durations and custom minutes and seconds</li>
       <li xml:lang="it">Durate predefinite e minuti e secondi personalizzati</li>
+      <li>Presets and sound editable from a right-click menu</li>
+      <li xml:lang="it">Preset e suono modificabili con il clic destro</li>
       <li>Pause, resume and reset</li>
       <li xml:lang="it">Pausa, ripresa e azzeramento</li>
       <li>Optional sound when a timer expires</li>

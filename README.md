@@ -10,6 +10,7 @@ panel, written in Rust with [libcosmic](https://github.com/pop-os/libcosmic).
 - Several labelled timers running in parallel; the panel shows the one that
   expires first, plus a counter of the others.
 - Preset durations and custom minutes and seconds.
+- Right-click the applet to edit the presets (up to 3) and the sound setting.
 - Pause, resume and reset.
 - Optional sound when a timer expires (toggle in the popup).
 - Running timers survive a panel restart or a logout.
@@ -47,9 +48,9 @@ To remove it: `just uninstall-user`.
 
 ## Configuration
 
-Settings live under
+Right-click the applet to change the settings. They are stored under
 `~/.config/cosmic/io.github.angelinuxx.CosmicExtAppletTimer/v1/`, one file per
-key, and changes are picked up live:
+key; editing those files by hand also works and is picked up live:
 
 | File            | Default       | Meaning                                  |
 | --------------- | ------------- | ---------------------------------------- |
