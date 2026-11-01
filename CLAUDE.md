@@ -94,7 +94,7 @@ resources/       app.desktop, app.metainfo.xml, icon.svg
   needed): `cosmic-utils/cosmic-ext-applet-pomodoro`,
   `pop-os/cosmic-applets` (`cosmic-applet-time`).
 
-## libcosmic gotchas at the pinned rev (03c8f93b)
+## libcosmic gotchas at the pinned rev (95236a94)
 
 - Popup commands live at
   `cosmic::iced::platform_specific::shell::wayland::commands::popup`
@@ -107,6 +107,6 @@ resources/       app.desktop, app.metainfo.xml, icon.svg
 - `cosmic::iced::time::every(Duration)` is available (tokio feature) and is
   what the tick subscription uses.
 - Verify an API before proposing it: the checkout is under
-  `~/.cargo/git/checkouts/libcosmic-*/03c8f93/`. A throwaway crate in the
+  `~/.cargo/git/checkouts/libcosmic-*/95236a9/`. A throwaway crate in the
   scratchpad with `CARGO_TARGET_DIR` pointed at this project's `target/`
   compiles in seconds.
