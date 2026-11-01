@@ -3,6 +3,7 @@
 mod app;
 mod config;
 mod i18n;
+mod presets;
 mod sound;
 mod state;
 mod timer;

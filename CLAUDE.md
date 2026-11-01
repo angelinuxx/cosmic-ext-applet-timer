@@ -73,6 +73,7 @@ src/main.rs      entry point: i18n init + cosmic::applet::run
 src/app.rs       AppModel, impl cosmic::Application, Message enum
 src/timer.rs     pure timer state machine + unit tests, no UI, takes `now` as a param
 src/config.rs    settings via cosmic-config (CosmicConfigEntry)
+src/presets.rs   pure preset-list editing rules + unit tests
 src/state.rs     persisted runtime state (running timers)
 src/sound.rs     expiry sound via pw-play
 src/i18n.rs      Fluent loader and fl! macro

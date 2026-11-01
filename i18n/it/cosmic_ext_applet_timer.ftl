@@ -11,3 +11,9 @@ label-placeholder = Etichetta
 add-timer = Aggiungi timer
 more-timers = +{ $count }
 sound = Suono
+
+presets = Preset
+add-preset = Aggiungi preset
+minutes-unit = min
+presets-limit = Massimo { $max } preset
+presets-minimum = Serve almeno un preset

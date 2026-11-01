@@ -288,3 +288,14 @@ Learn: `Vec`, iterators, ownership inside collections, messages carrying ids.
 - `LICENSE`, `metainfo.xml`, README, screenshot, own hourglass symbolic icon
   (done, 2026-11-01).
 - libcosmic rev bump to 95236a94 (done, 2026-11-01).
+
+### M6: preset settings
+
+- Right click on the panel button opens a settings popup (left click still
+  opens the timers; one popup at a time).
+- Editable preset list: − [minutes] min +, typed value applied on Enter /
+  Tab / Esc / any other edit / popup close (invalid text reverts), move up,
+  move down, remove; Add preset appends last + 5. 1-999 minutes, 1-3 presets,
+  duplicates allowed. Every edit is saved to cosmic-config at once.
+- Sound toggle in both popups' footers.
+- Pure rules in `src/presets.rs` with unit tests.

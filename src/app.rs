@@ -12,6 +12,7 @@ use cosmic::widget;
 
 use crate::config::{self, Config};
 use crate::fl;
+use crate::presets::{self, PresetAction};
 use crate::sound;
 use crate::state::{self, State};
 use crate::timer::{Timer, TimerState, format_remaining, panel_timer};
@@ -19,12 +20,29 @@ use crate::timer::{Timer, TimerState, format_remaining, panel_timer};
 /// Installed into the hicolor theme by the justfile, so it resolves under any icon theme.
 const ICON_NAME: &str = "io.github.angelinuxx.CosmicExtAppletTimer-symbolic";
 const REMOVE_ICON_NAME: &str = "edit-delete-symbolic";
+const DECREMENT_ICON_NAME: &str = "list-remove-symbolic";
+const INCREMENT_ICON_NAME: &str = "list-add-symbolic";
+const MOVE_UP_ICON_NAME: &str = "go-up-symbolic";
+const MOVE_DOWN_ICON_NAME: &str = "go-down-symbolic";
 /// Leaves room for the Add button inside the popup's 700 px maximum height.
 const MAX_LIST_HEIGHT: f32 = 560.0;
+/// Wide enough for three digits.
+const PRESET_INPUT_WIDTH: f32 = 56.0;
+
+/// Which popup is open: left click opens the timers, right click the settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PopupKind {
+    Timers,
+    Settings,
+}
 
 pub struct AppModel {
     core: cosmic::Core,
-    popup: Option<Id>,
+    popup: Option<(Id, PopupKind)>,
+    /// Text typed into a preset field and not applied yet, with the preset's
+    /// index. Applied on Enter, Tab/Esc, any other preset edit, or when the
+    /// popup closes; dropped if it is not a valid number of minutes.
+    preset_draft: Option<(usize, String)>,
     /// The timers and the next free id; persisted whenever it changes.
     state: State,
     config: Config,
@@ -36,7 +54,7 @@ pub struct AppModel {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    TogglePopup,
+    TogglePopup(PopupKind),
     PopupClosed(Id),
     Tick,
     SoundPlayed,
@@ -48,6 +66,13 @@ pub enum Message {
     AcknowledgeExpired,
     /// An action on the timer with the given id.
     Timer(u32, TimerAction),
+    /// An edit to the preset at the given index, saved at once.
+    Preset(usize, PresetAction),
+    AddPreset,
+    /// Text typed into the field of the preset at the given index.
+    PresetInput(usize, String),
+    /// Enter or Tab/Esc in a preset field: apply what was typed.
+    CommitPresetInput,
 }
 
 #[derive(Debug, Clone)]
@@ -88,10 +113,14 @@ impl AppModel {
     /// which saves the state afterwards if the message changed it.
     fn handle(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::TogglePopup => return self.toggle_popup(),
+            Message::TogglePopup(kind) => {
+                self.commit_preset_draft();
+                return self.toggle_popup(kind);
+            }
             Message::PopupClosed(id) => {
-                if self.popup == Some(id) {
+                if self.popup.is_some_and(|(open, _)| open == id) {
                     self.popup = None;
+                    self.commit_preset_draft();
                 }
             }
             Message::Tick => {
@@ -142,29 +171,82 @@ impl AppModel {
                     action.apply(timer);
                 }
             }
+            Message::Preset(index, action) => {
+                self.commit_preset_draft();
+                self.edit_presets(|presets| action.apply(presets, index));
+            }
+            Message::AddPreset => {
+                self.commit_preset_draft();
+                self.edit_presets(presets::add);
+            }
+            Message::PresetInput(index, text) => {
+                // Typing into another row leaves the previous field.
+                if self
+                    .preset_draft
+                    .as_ref()
+                    .is_some_and(|(open, _)| *open != index)
+                {
+                    self.commit_preset_draft();
+                }
+                self.preset_draft = Some((index, text));
+            }
+            Message::CommitPresetInput => self.commit_preset_draft(),
         }
         Task::none()
     }
 
-    fn toggle_popup(&mut self) -> Task<Message> {
-        if let Some(id) = self.popup.take() {
-            destroy_popup(id)
-        } else {
-            let id = Id::unique();
-            self.popup = Some(id);
-            let mut settings = self.core.applet.get_popup_settings(
-                self.core.main_window_id().unwrap(),
-                id,
-                None,
-                None,
-                None,
-            );
-            settings.positioner.size_limits = Limits::NONE
-                .min_width(200.0)
-                .max_width(400.0)
-                .min_height(80.0)
-                .max_height(700.0);
-            get_popup(settings)
+    /// Same kind as the open popup: close it. Other kind: swap it. None open:
+    /// open it.
+    fn toggle_popup(&mut self, kind: PopupKind) -> Task<Message> {
+        match self.popup.take() {
+            Some((id, open)) if open == kind => destroy_popup(id),
+            Some((id, _)) => Task::batch([destroy_popup(id), self.open_popup(kind)]),
+            None => self.open_popup(kind),
+        }
+    }
+
+    fn open_popup(&mut self, kind: PopupKind) -> Task<Message> {
+        let id = Id::unique();
+        self.popup = Some((id, kind));
+        let mut settings = self.core.applet.get_popup_settings(
+            self.core.main_window_id().unwrap(),
+            id,
+            None,
+            None,
+            None,
+        );
+        settings.positioner.size_limits = Limits::NONE
+            .min_width(200.0)
+            .max_width(400.0)
+            .min_height(80.0)
+            .max_height(700.0);
+        get_popup(settings)
+    }
+
+    /// Edits a copy of the presets and saves it if it changed. The config
+    /// watcher then sends the same value back as `ConfigChanged`.
+    fn edit_presets(&mut self, edit: impl FnOnce(&mut Vec<u64>)) {
+        let mut edited = self.config.presets.clone();
+        edit(&mut edited);
+        if edited == self.config.presets {
+            return;
+        }
+        match &self.config_handler {
+            Some(handler) => {
+                if let Err(err) = self.config.set_presets(handler, edited) {
+                    eprintln!("failed to save presets: {err}");
+                }
+            }
+            None => self.config.presets = edited,
+        }
+    }
+
+    /// Applies the text typed into a preset field, if any and valid.
+    fn commit_preset_draft(&mut self) {
+        if let Some((index, text)) = self.preset_draft.take()
+            && let Some(minutes) = presets::parse_minutes(&text)
+        {
+            self.edit_presets(|presets| PresetAction::Set(minutes).apply(presets, index));
         }
     }
 
@@ -283,6 +365,132 @@ impl AppModel {
             .spacing(8)
             .into()
     }
+
+    /// The same setting in both popups' footers.
+    fn sound_toggler(&self) -> Element<'_, Message> {
+        widget::toggler(self.config.sound_enabled)
+            .label(fl!("sound"))
+            .spacing(8)
+            .on_toggle(Message::SetSoundEnabled)
+            .into()
+    }
+
+    /// Timers popup: one card per timer, then Add timer and the sound toggle.
+    fn timers_view(&self) -> Element<'_, Message> {
+        let now = SystemTime::now();
+        let cards = self
+            .state
+            .timers
+            .iter()
+            .map(|timer| self.timer_card(timer, now));
+
+        // A column hands its children the remaining height in order, so an
+        // uncapped list would take it all and push the Add button out of the
+        // popup. The embedded scrollbar takes space beside the cards only
+        // while it is visible, so the side padding stays even otherwise.
+        let list = widget::scrollable(widget::Column::with_children(cards).spacing(12)).spacing(8);
+
+        let footer = widget::Row::new()
+            .push(widget::button::standard(fl!("add-timer")).on_press(Message::AddTimer))
+            .push(widget::space::horizontal())
+            .push(self.sound_toggler())
+            .align_y(Alignment::Center)
+            .spacing(8);
+
+        widget::Column::new()
+            .push(widget::container(list).max_height(MAX_LIST_HEIGHT))
+            .push(footer)
+            .align_x(Alignment::Center)
+            .spacing(12)
+            .padding(12)
+            .into()
+    }
+
+    /// Settings popup: the editable preset list, then Add preset and the
+    /// sound toggle.
+    fn settings_view(&self) -> Element<'_, Message> {
+        let list = (0..self.config.presets.len()).fold(widget::list_column(), |list, index| {
+            list.add(self.preset_row(index))
+        });
+
+        let can_add = presets::can_add(&self.config.presets);
+        let footer = widget::Row::new()
+            .push(explain_disabled(
+                widget::button::standard(fl!("add-preset"))
+                    .on_press_maybe(can_add.then_some(Message::AddPreset)),
+                can_add,
+                fl!("presets-limit", max = presets::MAX_PRESETS),
+                widget::tooltip::Position::Top,
+            ))
+            .push(widget::space::horizontal())
+            .push(self.sound_toggler())
+            .align_y(Alignment::Center)
+            .spacing(8);
+
+        widget::Column::new()
+            .push(widget::text::heading(fl!("presets")))
+            .push(list)
+            .push(footer)
+            .spacing(12)
+            .padding(12)
+            .into()
+    }
+
+    /// One preset: − [minutes] min +, then move up, move down and remove.
+    fn preset_row(&self, index: usize) -> Element<'_, Message> {
+        let presets = &self.config.presets;
+        let button = |icon: &'static str, action: PresetAction| {
+            widget::button::icon(widget::icon::from_name(icon)).on_press_maybe(
+                action
+                    .allowed(presets, index)
+                    .then_some(Message::Preset(index, action)),
+            )
+        };
+
+        // While typing, the field shows the draft instead of the saved value.
+        let text = match &self.preset_draft {
+            Some((open, draft)) if *open == index => draft.clone(),
+            _ => presets[index].to_string(),
+        };
+        let input = widget::text_input("", text)
+            .on_input(move |text| Message::PresetInput(index, text))
+            .on_submit(|_| Message::CommitPresetInput)
+            .on_unfocus(Message::CommitPresetInput)
+            .width(Length::Fixed(PRESET_INPUT_WIDTH));
+
+        widget::Row::new()
+            .push(button(DECREMENT_ICON_NAME, PresetAction::Decrement))
+            .push(input)
+            .push(widget::text::body(fl!("minutes-unit")))
+            .push(button(INCREMENT_ICON_NAME, PresetAction::Increment))
+            .push(widget::space::horizontal())
+            .push(button(MOVE_UP_ICON_NAME, PresetAction::MoveUp))
+            .push(button(MOVE_DOWN_ICON_NAME, PresetAction::MoveDown))
+            .push(explain_disabled(
+                button(REMOVE_ICON_NAME, PresetAction::Remove),
+                PresetAction::Remove.allowed(presets, index),
+                fl!("presets-minimum"),
+                widget::tooltip::Position::Left,
+            ))
+            .align_y(Alignment::Center)
+            .spacing(4)
+            .into()
+    }
+}
+
+/// Shows `reason` on hover while `widget` is disabled; a disabled button
+/// alone does not say why.
+fn explain_disabled<'a>(
+    widget: impl Into<Element<'a, Message>>,
+    enabled: bool,
+    reason: String,
+    position: widget::tooltip::Position,
+) -> Element<'a, Message> {
+    if enabled {
+        widget.into()
+    } else {
+        widget::tooltip(widget, widget::text::body(reason), position).into()
+    }
 }
 
 /// Panel text for a paused timer: the applet's usual foreground colour from
@@ -319,6 +527,7 @@ impl cosmic::Application for AppModel {
         let app = AppModel {
             core,
             popup: None,
+            preset_draft: None,
             state,
             config,
             config_handler,
@@ -346,7 +555,11 @@ impl cosmic::Application for AppModel {
         let on_press = if expired {
             Message::AcknowledgeExpired
         } else {
-            Message::TogglePopup
+            Message::TogglePopup(PopupKind::Timers)
+        };
+        // Right click opens the settings in every state.
+        let with_right_click = |button| {
+            widget::mouse_area(button).on_right_press(Message::TogglePopup(PopupKind::Settings))
         };
 
         // Icon only when every timer is idle. Both branches go through
@@ -359,7 +572,11 @@ impl cosmic::Application for AppModel {
                 .icon_button(ICON_NAME)
                 .on_press(on_press)
                 .class(class);
-            return self.core.applet.autosize_window(button).into();
+            return self
+                .core
+                .applet
+                .autosize_window(with_right_click(button))
+                .into();
         };
 
         let horizontal = self.core.applet.is_horizontal();
@@ -421,42 +638,17 @@ impl cosmic::Application for AppModel {
         .on_press(on_press)
         .class(class);
 
-        self.core.applet.autosize_window(button).into()
+        self.core
+            .applet
+            .autosize_window(with_right_click(button))
+            .into()
     }
 
-    fn view_window(&self, _id: Id) -> Element<'_, Message> {
-        let now = SystemTime::now();
-        let cards = self
-            .state
-            .timers
-            .iter()
-            .map(|timer| self.timer_card(timer, now));
-
-        // A column hands its children the remaining height in order, so an
-        // uncapped list would take it all and push the Add button out of the
-        // popup. The embedded scrollbar takes space beside the cards only
-        // while it is visible, so the side padding stays even otherwise.
-        let list = widget::scrollable(widget::Column::with_children(cards).spacing(12)).spacing(8);
-
-        let footer = widget::Row::new()
-            .push(widget::button::standard(fl!("add-timer")).on_press(Message::AddTimer))
-            .push(widget::space::horizontal())
-            .push(
-                widget::toggler(self.config.sound_enabled)
-                    .label(fl!("sound"))
-                    .spacing(8)
-                    .on_toggle(Message::SetSoundEnabled),
-            )
-            .align_y(Alignment::Center)
-            .spacing(8);
-
-        let content = widget::Column::new()
-            .push(widget::container(list).max_height(MAX_LIST_HEIGHT))
-            .push(footer)
-            .align_x(Alignment::Center)
-            .spacing(12)
-            .padding(12);
-
+    fn view_window(&self, id: Id) -> Element<'_, Message> {
+        let content = match self.popup {
+            Some((open, PopupKind::Settings)) if open == id => self.settings_view(),
+            _ => self.timers_view(),
+        };
         self.core.applet.popup_container(content).into()
     }
 
